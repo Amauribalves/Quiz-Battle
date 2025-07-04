@@ -209,8 +209,18 @@ export const questionsDatabase: Question[] = [
 ];
 
 export const getQuestionsByCategory = (category: string, difficulty: string, count: number = 5): Question[] => {
-  const filtered = questionsDatabase.filter(q => q.category === category && q.difficulty === difficulty);
-  return filtered.sort(() => Math.random() - 0.5).slice(0, count);
+  const usedQuestions: string[] = JSON.parse(localStorage.getItem('usedQuestions') || '[]');
+  let filtered = questionsDatabase.filter(q => q.category === category && q.difficulty === difficulty && !usedQuestions.includes(q.id));
+  // Se não houver perguntas suficientes, limpa o histórico e refaz o filtro
+  if (filtered.length < count) {
+    localStorage.removeItem('usedQuestions');
+    filtered = questionsDatabase.filter(q => q.category === category && q.difficulty === difficulty);
+  }
+  const selected = filtered.sort(() => Math.random() - 0.5).slice(0, count);
+  // Salva os IDs das perguntas usadas
+  const newUsed = [...usedQuestions, ...selected.map(q => q.id)];
+  localStorage.setItem('usedQuestions', JSON.stringify(newUsed));
+  return selected;
 };
 
 export const getDifficultyMultiplier = (difficulty: string): number => {

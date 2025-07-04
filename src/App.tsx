@@ -248,14 +248,40 @@ function App() {
     }
   };
 
+  // Função utilitária para buscar perguntas já respondidas
+  async function buscarPerguntasRespondidas(userId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('questions_history')
+      .select('question_id')
+      .eq('user_id', userId);
+    if (error) {
+      console.error('Erro ao buscar histórico de perguntas:', error);
+      return [];
+    }
+    return data ? data.map((row: any) => row.question_id) : [];
+  }
+
+  // Função utilitária para salvar histórico
+  async function salvarHistoricoPerguntas(userId: string, questions: { id: string }[]) {
+    const registros = questions.map(q => ({
+      user_id: userId,
+      question_id: q.id,
+      answered_at: new Date().toISOString()
+    }));
+    await supabase.from('questions_history').insert(registros);
+  }
+
   // Iniciar jogo solo (treino)
   const startSoloGame = async (category: string) => {
     try {
+      if (!user) return;
       const savedConfig = localStorage.getItem('quiz-api-config');
       const config = savedConfig ? JSON.parse(savedConfig) : { selectedSource: 'local' };
       const difficulties = ['easy', 'medium', 'hard'];
+      const respondidas = await buscarPerguntasRespondidas(user.id);
       const questions: any[] = [];
-      for (let i = 0; i < 5; i++) {
+      let tentativas = 0;
+      while (questions.length < 5 && tentativas < 20) {
         const randomDifficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
         const qs = await enhancedQuestionService.getQuestions(
           category,
@@ -263,7 +289,10 @@ function App() {
           1,
           'trivia'
         );
-        if (qs.length > 0) questions.push(qs[0]);
+        if (qs.length > 0 && !respondidas.includes(qs[0].id) && !questions.find(q => q.id === qs[0].id)) {
+          questions.push(qs[0]);
+        }
+        tentativas++;
       }
       if (questions.length === 0) {
         showNotification('error', 'Não foi possível carregar as perguntas. Tente novamente.');
@@ -354,6 +383,7 @@ function App() {
 
     // Solo mode não afeta saldo nem estatísticas
     if (gameState.gameMode === 'solo') {
+      salvarHistoricoPerguntas(user.id, questions);
       setGameState({
         currentQuestion: null,
         questionIndex: 0,

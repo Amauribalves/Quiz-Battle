@@ -3,6 +3,7 @@ import { ScreenContainer } from '../components/ScreenContainer';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { supabase } from '../App';
+import { ArrowLeft } from 'lucide-react';
 
 const ADMIN_CODE = 'batelha2024'; // Troque por um código seguro depois
 
@@ -110,7 +111,16 @@ const AdminScreen: React.FC = () => {
   return (
     <ScreenContainer>
       <div className="max-w-3xl mx-auto mt-10 p-6 bg-white rounded-lg shadow">
-        <h2 className="text-2xl font-bold mb-6 text-center">Painel Admin</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-center flex-1">Painel Admin</h2>
+          <Button
+            variant="secondary"
+            fullWidth={false}
+            className="ml-4"
+            icon={ArrowLeft}
+            onClick={() => setAuthenticated(false)}
+          >Sair</Button>
+        </div>
         {loading && <div className="text-center text-gray-500">Carregando saques...</div>}
         {fetchError && <div className="text-center text-red-500 mb-4">{fetchError}</div>}
         {successMsg && <div className="text-center text-green-600 mb-4 font-semibold">{successMsg}</div>}

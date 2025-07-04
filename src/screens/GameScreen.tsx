@@ -182,7 +182,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                 )}
               </p>
               
-              <Button onClick={() => onNavigate('home')}>
+              <Button onClick={() => {
+                if (isSoloMode) {
+                  onGameEnd(true, gameState.score);
+                }
+                onNavigate('home');
+              }}>
                 Voltar ao Início
               </Button>
             </div>

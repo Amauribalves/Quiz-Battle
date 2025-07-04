@@ -130,6 +130,29 @@ class MultiplayerService {
     this.matchmakingCallbacks.delete(userId);
   }
 
+  // Função utilitária para buscar perguntas já respondidas
+  async buscarPerguntasRespondidas(userId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('questions_history')
+      .select('question_id')
+      .eq('user_id', userId);
+    if (error) {
+      console.error('Erro ao buscar histórico de perguntas:', error);
+      return [];
+    }
+    return data ? data.map((row: any) => row.question_id) : [];
+  }
+
+  // Função utilitária para salvar histórico
+  async salvarHistoricoPerguntas(userId: string, questions: { id: string }[]) {
+    const registros = questions.map(q => ({
+      user_id: userId,
+      question_id: q.id,
+      answered_at: new Date().toISOString()
+    }));
+    await supabase.from('questions_history').insert(registros);
+  }
+
   // Criar sala de jogo com perguntas pré-carregadas
   private async createGameRoom(requests: MatchmakingRequest[]): Promise<GameRoom> {
     console.log('Criando sala de jogo para:', requests);
@@ -145,16 +168,28 @@ class MultiplayerService {
     // Carregar 10 perguntas iniciais
     const savedConfig = localStorage.getItem('quiz-api-config');
     const config = savedConfig ? JSON.parse(savedConfig) : { selectedSource: 'local' };
-    
+
+    // Buscar perguntas já respondidas pelos dois jogadores
+    const respondidas1 = await this.buscarPerguntasRespondidas(players[0]?.id);
+    const respondidas2 = await this.buscarPerguntasRespondidas(players[1]?.id);
+    const respondidas = Array.from(new Set([...respondidas1, ...respondidas2]));
+
     let questions: Question[] = [];
     try {
       console.log('Carregando perguntas para a sala');
-      questions = await enhancedQuestionService.getQuestions(
-        requests[0].bet.category,
-        requests[0].bet.difficulty,
-        10, // 10 perguntas iniciais
-        config.selectedSource
-      );
+      let tentativas = 0;
+      while (questions.length < 10 && tentativas < 30) {
+        const qs = await enhancedQuestionService.getQuestions(
+          requests[0].bet.category,
+          requests[0].bet.difficulty,
+          1,
+          config.selectedSource
+        );
+        if (qs.length > 0 && !respondidas.includes(qs[0].id) && !questions.find(q => q.id === qs[0].id)) {
+          questions.push(qs[0]);
+        }
+        tentativas++;
+      }
       console.log('Perguntas carregadas:', questions.length);
     } catch (error) {
       console.error('Erro ao carregar perguntas:', error);
@@ -308,6 +343,9 @@ class MultiplayerService {
           console.error('Erro ao atualizar partida na tabela matches:', e);
         }
       }
+      // Salvar histórico das perguntas para ambos os jogadores
+      await this.salvarHistoricoPerguntas(player1.id, room.questions);
+      await this.salvarHistoricoPerguntas(player2.id, room.questions);
     }
   }
 
@@ -317,18 +355,28 @@ class MultiplayerService {
     room.tiebreakerRound += 1;
     room.status = 'tiebreaker';
 
-    // Carregar 5 perguntas para desempate
+    // Buscar perguntas já respondidas pelos dois jogadores para o desempate
+    const respondidas1 = await this.buscarPerguntasRespondidas(room.players[0]?.id);
+    const respondidas2 = await this.buscarPerguntasRespondidas(room.players[1]?.id);
+    const respondidas = Array.from(new Set([...respondidas1, ...respondidas2]));
     const savedConfig = localStorage.getItem('quiz-api-config');
     const config = savedConfig ? JSON.parse(savedConfig) : { selectedSource: 'local' };
-    
+
     let tiebreakerQuestions: Question[] = [];
     try {
-      tiebreakerQuestions = await enhancedQuestionService.getQuestions(
-        room.bet.category,
-        room.bet.difficulty,
-        5, // 5 perguntas para desempate
-        config.selectedSource
-      );
+      let tentativas = 0;
+      while (tiebreakerQuestions.length < 5 && tentativas < 20) {
+        const qs = await enhancedQuestionService.getQuestions(
+          room.bet.category,
+          room.bet.difficulty,
+          1,
+          config.selectedSource
+        );
+        if (qs.length > 0 && !respondidas.includes(qs[0].id) && !tiebreakerQuestions.find(q => q.id === qs[0].id)) {
+          tiebreakerQuestions.push(qs[0]);
+        }
+        tentativas++;
+      }
     } catch (error) {
       console.error('Erro ao carregar perguntas de desempate:', error);
       // Fallback para perguntas locais
