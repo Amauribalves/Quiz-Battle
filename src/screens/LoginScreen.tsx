@@ -8,10 +8,9 @@ import { Screen } from '../types';
 interface LoginScreenProps {
   onNavigate: (screen: Screen) => void;
   onLogin: (email: string, password: string) => void;
-  onDemoLogin: () => void;
 }
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigate, onLogin, onDemoLogin }) => {
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigate, onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,9 +47,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigate, onLogin, o
         </Button>
         <Button variant="secondary" onClick={() => onNavigate('register')} icon={UserPlus} type="button">
           Criar Conta
-        </Button>
-        <Button variant="secondary" onClick={onDemoLogin} icon={Gamepad2} type="button">
-          Entrar como Demo
         </Button>
       </form>
     </div>

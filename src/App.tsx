@@ -19,6 +19,7 @@ import enhancedQuestionService from './services/enhancedQuestionService';
 import multiplayerService from './services/multiplayerService';
 import { availableAchievements, checkAchievements } from './data/achievements';
 import { createClient } from '@supabase/supabase-js';
+import AdminScreen from './screens/AdminScreen';
 
 const supabaseUrl = 'https://wgklhpkuurzfesnnpdhj.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indna2xocGt1dXJ6ZmVzbm5wZGhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MTAxOTMsImV4cCI6MjA2NjI4NjE5M30.EOOa8euGb1M2XV__N7jJ3jEEV53BF-ibtfcFpKFmFbg';
@@ -135,22 +136,6 @@ function App() {
     localStorage.setItem('user', JSON.stringify(newUser));
     setCurrentScreen('home');
     showNotification('success', 'Conta criada com sucesso! Você ganhou R$ 50,00 de bônus!');
-  };
-
-  const demoLogin = () => {
-    const demoUser: User = {
-      id: 'demo',
-      username: 'Demo User',
-      email: 'demo@example.com',
-      balance: 100,
-      wins: 15,
-      losses: 8,
-      achievements: []
-    };
-    setUser(demoUser);
-    localStorage.setItem('user', JSON.stringify(demoUser));
-    setCurrentScreen('home');
-    showNotification('success', 'Bem-vindo ao modo demo!');
   };
 
   const logout = () => {
@@ -439,7 +424,6 @@ function App() {
           <LoginScreen
             onNavigate={setCurrentScreen}
             onLogin={login}
-            onDemoLogin={demoLogin}
           />
         );
       case 'register':
@@ -535,6 +519,8 @@ function App() {
             onNavigate={setCurrentScreen}
           />
         );
+      case 'admin':
+        return <AdminScreen />;
       default:
         return null;
     }
