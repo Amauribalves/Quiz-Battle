@@ -378,12 +378,10 @@ function App() {
     }
   };
 
-  const endGame = (won: boolean, finalScore: number) => {
+  const endGame = async (won: boolean, finalScore: number) => {
     if (!user) return;
-
-    // Solo mode não afeta saldo nem estatísticas
     if (gameState.gameMode === 'solo') {
-      salvarHistoricoPerguntas(user.id, questions);
+      await salvarHistoricoPerguntas(user.id, questions);
       setGameState({
         currentQuestion: null,
         questionIndex: 0,
@@ -397,6 +395,7 @@ function App() {
         tiebreakerRound: 0
       });
       showNotification('success', `Treino concluído! Você acertou ${finalScore} de ${gameState.totalQuestions} perguntas.`);
+      setCurrentScreen('home');
       return;
     }
 
