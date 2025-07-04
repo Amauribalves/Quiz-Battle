@@ -90,20 +90,35 @@ function App() {
     if (savedUser) setUser(JSON.parse(savedUser));
   }, []);
 
-  const login = (email: string, password: string) => {
-    const newUser: User = {
-      id: Date.now().toString(),
-      username: email.split('@')[0],
-      email,
-      balance: 100, // Dar saldo inicial para teste
-      wins: 0,
-      losses: 0,
-      achievements: []
-    };
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    setCurrentScreen('home');
-    showNotification('success', 'Login realizado com sucesso!');
+  const login = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        showNotification('error', 'Erro ao fazer login: ' + error.message);
+        return;
+      }
+      const userAuth = data.user;
+      if (!userAuth) {
+        showNotification('error', 'Usuário não encontrado.');
+        return;
+      }
+      // Buscar dados do usuário na tabela 'users' pelo id do Supabase
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userAuth.id)
+        .single();
+      if (userError || !userData) {
+        showNotification('error', 'Usuário não encontrado no banco.');
+        return;
+      }
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setCurrentScreen('home');
+      showNotification('success', 'Login realizado com sucesso!');
+    } catch (err: any) {
+      showNotification('error', 'Erro inesperado ao fazer login.');
+    }
   };
 
   const register = (username: string, email: string, password: string) => {

@@ -4,7 +4,6 @@ import { Logo } from '../components/Logo';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Screen } from '../types';
-import { supabase } from '../App';
 
 interface LoginScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -12,7 +11,7 @@ interface LoginScreenProps {
   onDemoLogin: () => void;
 }
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigate, onDemoLogin }) => {
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigate, onLogin, onDemoLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,17 +19,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigate, onDemoLogi
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    await onLogin(email, password);
     setLoading(false);
-    if (error) {
-      alert('Erro ao fazer login: ' + error.message);
-    } else {
-      alert('Login realizado com sucesso!');
-      onNavigate('home');
-    }
   }
 
   return (
