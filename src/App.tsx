@@ -84,6 +84,12 @@ function App() {
     }
   }, [user]);
 
+  // Recuperar usuário salvo no localStorage ao iniciar o app
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) setUser(JSON.parse(savedUser));
+  }, []);
+
   const login = (email: string, password: string) => {
     const newUser: User = {
       id: Date.now().toString(),
@@ -95,6 +101,7 @@ function App() {
       achievements: []
     };
     setUser(newUser);
+    localStorage.setItem('user', JSON.stringify(newUser));
     setCurrentScreen('home');
     showNotification('success', 'Login realizado com sucesso!');
   };
@@ -110,6 +117,7 @@ function App() {
       achievements: []
     };
     setUser(newUser);
+    localStorage.setItem('user', JSON.stringify(newUser));
     setCurrentScreen('home');
     showNotification('success', 'Conta criada com sucesso! Você ganhou R$ 50,00 de bônus!');
   };
@@ -125,12 +133,14 @@ function App() {
       achievements: []
     };
     setUser(demoUser);
+    localStorage.setItem('user', JSON.stringify(demoUser));
     setCurrentScreen('home');
     showNotification('success', 'Bem-vindo ao modo demo!');
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('user');
     setCurrentScreen('login');
     setGameState({
       currentQuestion: null,
