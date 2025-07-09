@@ -23,6 +23,7 @@ import AdminScreen from './screens/AdminScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { FriendsScreen } from './screens/FriendsScreen';
 import { HistoricoScreen } from './screens/HistoricoScreen';
+import { BottomNavBar } from './components/BottomNavBar';
 
 const supabaseUrl = 'https://wgklhpkuurzfesnnpdhj.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indna2xocGt1dXJ6ZmVzbm5wZGhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MTAxOTMsImV4cCI6MjA2NjI4NjE5M30.EOOa8euGb1M2XV__N7jJ3jEEV53BF-ibtfcFpKFmFbg';
@@ -572,6 +573,7 @@ function App() {
           <ProfileScreen
             user={user}
             onNavigate={setCurrentScreen}
+            setUser={setUser}
           />
         ) : null;
       case 'friends':
@@ -595,6 +597,7 @@ function App() {
     }
   };
 
+  const showNavBar = !['login', 'register'].includes(currentScreen);
   return (
     <>
       {currentScreen === 'game' ? (
@@ -604,7 +607,9 @@ function App() {
           {renderScreen()}
         </ScreenContainer>
       )}
-      
+      {showNavBar && (
+        <BottomNavBar onNavigate={setCurrentScreen} currentScreen={currentScreen} />
+      )}
       <Notification
         type={notification.type}
         message={notification.message}

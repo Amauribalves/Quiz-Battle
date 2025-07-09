@@ -38,9 +38,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onNavigate, 
       .eq('id', user.id);
     if (!error) {
       setMsg('Perfil salvo com sucesso!');
+      const novoUser = { ...user, idade: idade ? Number(idade) : undefined, sexo, endereco, avatar: avatarIndex };
       if (setUser) {
-        setUser({ ...user, idade: idade ? Number(idade) : undefined, sexo, endereco, avatar: avatarIndex });
+        setUser(novoUser);
       }
+      localStorage.setItem('user', JSON.stringify(novoUser));
     } else {
       setMsg('Erro ao salvar perfil.');
     }
