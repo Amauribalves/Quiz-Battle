@@ -26,7 +26,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onLogo
   ];
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen w-full max-w-full px-2 sm:px-0 sm:max-w-md mx-auto">
       {/* Topo: Desafio X e Saldos */}
       <div className="flex items-center p-4 pb-0 gap-6">
         <Button onClick={() => onNavigate('desafio-x')} variant="primary" className="px-0.5 py-1 text-sm min-w-0">Desafio X</Button>
@@ -39,7 +39,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onLogo
           <Logo size="md" />
         </div>
         {/* Card com nome do usuário */}
-        <Card className="mb-4 mx-4 mt-0 p-2">
+        <Card className="mb-4 mt-0 p-2 w-full">
           <div className="flex items-center justify-between text-lg font-semibold text-gray-800">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
@@ -57,7 +57,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onLogo
         {/* Vitórias e Derrotas */}
         <StatsGrid wins={user.wins} losses={user.losses} />
         {/* Botões principais */}
-        <div className="space-y-3 px-4 mb-8">
+        <div className="space-y-3 px-0 mb-8 w-full">
           <Button onClick={() => onNavigate('game-mode-select')} icon={Target}>
             Jogar Agora
           </Button>
