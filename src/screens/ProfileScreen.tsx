@@ -44,7 +44,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ user, onNavigate, 
       }
       localStorage.setItem('user', JSON.stringify(novoUser));
     } else {
-      setMsg('Erro ao salvar perfil.');
+      setMsg('Erro ao salvar perfil: ' + error.message);
+      console.error('Erro ao salvar perfil:', error);
     }
     setSalvando(false);
   };
