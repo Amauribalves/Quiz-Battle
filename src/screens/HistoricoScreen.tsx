@@ -9,59 +9,80 @@ interface HistoricoScreenProps {
   onNavigate: (screen: Screen) => void;
 }
 
-interface Jogo {
+interface Transacao {
   id: string;
+  tipo: 'depósito' | 'saque';
+  valor: number;
   data: string;
-  resultado: string;
-  pontuacao: number;
-  modo: string;
-  adversario?: string;
-  aposta?: number;
+  status?: string;
 }
 
 export const HistoricoScreen: React.FC<HistoricoScreenProps> = ({ user, onNavigate }) => {
-  const [jogos, setJogos] = useState<Jogo[]>([]);
+  const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    buscarHistorico();
+    buscarTransacoes();
     // eslint-disable-next-line
   }, []);
 
-  async function buscarHistorico() {
+  async function buscarTransacoes() {
     setCarregando(true);
     setMsg(null);
-    const { data, error } = await supabase
-      .from('historico_jogos')
-      .select('*')
+    // Buscar depósitos
+    const { data: depositos, error: erroDep } = await supabase
+      .from('depositos')
+      .select('id, valor, criado_em')
       .eq('user_id', user.id)
-      .order('data', { ascending: false })
+      .order('criado_em', { ascending: false })
       .limit(10);
-    if (!error && data) {
-      setJogos(data);
-    } else {
+    // Buscar saques
+    const { data: saques, error: erroSaq } = await supabase
+      .from('retire_se')
+      .select('id, quantia, criado_em, status')
+      .eq('user_id', user.id)
+      .order('criado_em', { ascending: false })
+      .limit(10);
+    if (erroDep || erroSaq) {
       setMsg('Erro ao buscar histórico.');
+      setCarregando(false);
+      return;
     }
+    // Unir e ordenar por data
+    const transacoes: Transacao[] = [
+      ...(depositos || []).map((d: any) => ({
+        id: d.id,
+        tipo: 'depósito' as const,
+        valor: d.valor,
+        data: d.criado_em,
+      })),
+      ...(saques || []).map((s: any) => ({
+        id: s.id,
+        tipo: 'saque' as const,
+        valor: s.quantia,
+        data: s.criado_em,
+        status: s.status,
+      })),
+    ].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).slice(0, 10);
+    setTransacoes(transacoes);
     setCarregando(false);
   }
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gradient-to-b from-violet-400 to-fuchsia-500 p-4">
       <Card className="w-full max-w-md flex flex-col items-center py-8">
-        <h2 className="text-2xl font-bold mb-4">Histórico de Jogos</h2>
+        <h2 className="text-2xl font-bold mb-4">Histórico Financeiro</h2>
         {carregando ? <div>Carregando...</div> : (
           <div className="w-full">
-            {jogos.length === 0 ? <div>Nenhum jogo encontrado.</div> : (
+            {transacoes.length === 0 ? <div>Nenhuma movimentação encontrada.</div> : (
               <ul className="divide-y">
-                {jogos.map(jogo => (
-                  <li key={jogo.id} className="py-2 flex flex-col text-sm">
-                    <span className="font-semibold">{new Date(jogo.data).toLocaleString('pt-BR')}</span>
-                    <span>Resultado: <b className={jogo.resultado === 'vitória' ? 'text-green-600' : 'text-red-600'}>{jogo.resultado}</b></span>
-                    <span>Pontuação: {jogo.pontuacao}</span>
-                    <span>Modo: {jogo.modo}</span>
-                    {jogo.adversario && <span>Adversário: {jogo.adversario}</span>}
-                    {jogo.aposta !== undefined && <span>Aposta: R$ {jogo.aposta.toFixed(2)}</span>}
+                {transacoes.map(t => (
+                  <li key={t.id} className="py-2 flex flex-col text-sm">
+                    <span className={`font-semibold ${t.tipo === 'depósito' ? 'text-green-600' : 'text-red-600'}`}>{t.tipo.toUpperCase()}</span>
+                    <span>Valor: R$ {t.valor.toFixed(2)}</span>
+                    <span>Data: {new Date(t.data).toLocaleString('pt-BR')}</span>
+                    {t.tipo === 'saque' && t.status && <span>Status: {t.status}</span>}
                   </li>
                 ))}
               </ul>

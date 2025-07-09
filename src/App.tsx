@@ -126,20 +126,29 @@ function App() {
     }
   };
 
-  const register = (username: string, email: string, password: string) => {
-    const newUser: User = {
-      id: Date.now().toString(),
-      username,
-      email,
-      balance: 50, // Dar saldo inicial para teste
-      wins: 0,
-      losses: 0,
-      achievements: []
-    };
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    setCurrentScreen('home');
-    showNotification('success', 'Conta criada com sucesso! Você ganhou R$ 50,00 de bônus!');
+  const register = async (username: string, email: string, password: string) => {
+    try {
+      // Cria usuário no Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+      if (authError || !authData.user) {
+        showNotification('error', 'Erro ao criar conta: ' + (authError?.message || '')); return;
+      }
+      // Cria usuário na tabela users
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .insert({ id: authData.user.id, username, email, balance: 50, wins: 0, losses: 0, achievements: [] })
+        .select()
+        .single();
+      if (userError || !userData) {
+        showNotification('error', 'Erro ao criar perfil: ' + (userError?.message || '')); return;
+      }
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setCurrentScreen('home');
+      showNotification('success', 'Conta criada com sucesso! Você ganhou R$ 50,00 de bônus!');
+    } catch (err: any) {
+      showNotification('error', 'Erro inesperado ao criar conta.');
+    }
   };
 
   const logout = () => {
