@@ -38,7 +38,7 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({ user, onNavigate }
     setCarregando(true);
     setMsg(null);
     const { data, error } = await supabase
-      .from('usuarios')
+      .from('users')
       .select('id, username, "vitórias_ganha", avatar')
       .order('vitórias_ganha', { ascending: false });
     if (!error && data) {
