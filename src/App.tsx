@@ -20,6 +20,9 @@ import multiplayerService from './services/multiplayerService';
 import { availableAchievements, checkAchievements } from './data/achievements';
 import { createClient } from '@supabase/supabase-js';
 import AdminScreen from './screens/AdminScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
+import { FriendsScreen } from './screens/FriendsScreen';
+import { HistoricoScreen } from './screens/HistoricoScreen';
 
 const supabaseUrl = 'https://wgklhpkuurzfesnnpdhj.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indna2xocGt1dXJ6ZmVzbm5wZGhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MTAxOTMsImV4cCI6MjA2NjI4NjE5M30.EOOa8euGb1M2XV__N7jJ3jEEV53BF-ibtfcFpKFmFbg';
@@ -429,7 +432,23 @@ function App() {
       }, 1000);
     }
 
+    // Atualiza wins, losses e balance no Supabase
+    await supabase
+      .from('users')
+      .update({ wins: newWins, losses: newLosses, balance: newBalance })
+      .eq('id', user.id);
+    // Salvar histórico do jogo
+    await supabase.from('historico_jogos').insert({
+      user_id: user.id,
+      data: new Date().toISOString(),
+      resultado: won ? 'vitória' : 'derrota',
+      pontuacao: finalScore,
+      modo: gameState.gameMode,
+      adversario: gameState.opponent?.username || null,
+      aposta: gameState.bet?.amount || null
+    });
     setUser(updatedUser);
+
     setGameState({
       currentQuestion: null,
       questionIndex: 0,
@@ -548,6 +567,27 @@ function App() {
             onNavigate={setCurrentScreen}
           />
         );
+      case 'profile':
+        return user ? (
+          <ProfileScreen
+            user={user}
+            onNavigate={setCurrentScreen}
+          />
+        ) : null;
+      case 'friends':
+        return user ? (
+          <FriendsScreen
+            user={user}
+            onNavigate={setCurrentScreen}
+          />
+        ) : null;
+      case 'history':
+        return user ? (
+          <HistoricoScreen
+            user={user}
+            onNavigate={setCurrentScreen}
+          />
+        ) : null;
       case 'admin':
         return <AdminScreen />;
       default:

@@ -10,7 +10,7 @@ export const Card: React.FC<CardProps> = ({ children, className = '', hover = fa
   const hoverClass = hover ? 'hover:shadow-xl hover:-translate-y-1' : '';
   
   return (
-    <div className={`bg-white rounded-2xl shadow-lg p-6 transition-all duration-300 ${hoverClass} ${className}`}>
+    <div className={`bg-white rounded-2xl shadow-lg p-3 transition-all duration-300 ${hoverClass} ${className}`}>
       {children}
     </div>
   );

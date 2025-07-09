@@ -6,6 +6,10 @@ export interface User {
   wins: number;
   losses: number;
   achievements: Achievement[];
+  idade?: number;
+  sexo?: string;
+  endereco?: string;
+  avatar?: number;
 }
 
 export interface Achievement {
@@ -95,7 +99,13 @@ export type Screen =
   | 'withdraw' 
   | 'achievements'
   | 'api-config'
-  | 'admin';
+  | 'admin'
+  | 'desafio-x'
+  | 'ranking'
+  | 'missions'
+  | 'friends'
+  | 'profile'
+  | 'history';
 
 // Interfaces existentes para APIs
 export interface APIMetric {

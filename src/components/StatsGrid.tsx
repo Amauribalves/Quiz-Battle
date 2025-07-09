@@ -9,16 +9,16 @@ interface StatsGridProps {
 
 export const StatsGrid: React.FC<StatsGridProps> = ({ wins, losses }) => {
   return (
-    <div className="grid grid-cols-2 gap-4 mb-6">
-      <Card hover className="text-center">
-        <Trophy className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-        <div className="text-3xl font-bold text-indigo-600">{wins}</div>
-        <div className="text-sm text-gray-600">Vitórias</div>
+    <div className="grid grid-cols-2 gap-2 mb-4">
+      <Card hover className="text-center p-2">
+        <Trophy className="w-6 h-6 text-yellow-500 mx-auto mb-1" />
+        <div className="text-xl font-bold text-indigo-600">{wins}</div>
+        <div className="text-xs text-gray-600">Vitórias</div>
       </Card>
-      <Card hover className="text-center">
-        <XCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-        <div className="text-3xl font-bold text-red-600">{losses}</div>
-        <div className="text-sm text-gray-600">Derrotas</div>
+      <Card hover className="text-center p-2">
+        <XCircle className="w-6 h-6 text-red-500 mx-auto mb-1" />
+        <div className="text-xl font-bold text-red-600">{losses}</div>
+        <div className="text-xs text-gray-600">Derrotas</div>
       </Card>
     </div>
   );
