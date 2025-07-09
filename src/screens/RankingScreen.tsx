@@ -38,13 +38,13 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({ user, onNavigate }
     setCarregando(true);
     setMsg(null);
     const { data, error } = await supabase
-      .from('users')
-      .select('id, "nome de usuário", "vitórias_ganha", avatar')
+      .from('usuarios')
+      .select('id, username, "vitórias_ganha", avatar')
       .order('vitórias_ganha', { ascending: false });
     if (!error && data) {
       setRanking(data.map((u: any) => ({
         id: u.id,
-        username: u["nome de usuário"],
+        username: u.username,
         wins: u["vitórias_ganha"],
         avatar: u.avatar
       })));
