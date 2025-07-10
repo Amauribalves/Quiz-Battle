@@ -38,16 +38,17 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({ user, onNavigate }
     setCarregando(true);
     setMsg(null);
     const { data, error } = await supabase
-      .from('users')
-      .select('id, username, "vitórias_ganha", avatar')
-      .order('vitórias_ganha', { ascending: false });
-    if (!error && data) {
-      setRanking(data.map((u: any) => ({
-        id: u.id,
-        username: u.username,
-        wins: u["vitórias_ganha"],
-        avatar: u.avatar
-      })));
+        .from('users')
+        .select('id, username, wins, avatar')
+        .order('wins', { ascending: false });
+      if (!error && data) {
+        console.log('Ranking data:', data);
+        setRanking(data.map((u: any) => ({
+          id: u.id,
+          username: u.username,
+          wins: u.wins,
+          avatar: u.avatar
+        })));
     } else {
       setMsg('Erro ao buscar ranking: ' + (error?.message || ''));
       console.error('Erro ao buscar ranking:', error);

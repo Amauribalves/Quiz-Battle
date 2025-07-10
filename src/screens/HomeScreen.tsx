@@ -6,6 +6,7 @@ import { BalanceDisplay } from '../components/BalanceDisplay';
 import { WithdrawBalanceDisplay } from '../components/WithdrawBalanceDisplay';
 import { StatsGrid } from '../components/StatsGrid';
 import { Card } from '../components/Card';
+import { CircularProgress } from '../components/CircularProgress';
 import { User, Screen } from '../types';
 
 interface HomeScreenProps {
@@ -28,9 +29,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onLogo
   return (
     <div className="flex flex-col min-h-screen w-full max-w-full px-2 sm:px-0 sm:max-w-md mx-auto">
       {/* Topo: Desafio X e Saldos */}
-      <div className="flex items-center p-4 pb-0 gap-6">
-        <Button onClick={() => onNavigate('desafio-x')} variant="primary" className="px-0.5 py-1 text-sm min-w-0">Desafio X</Button>
-        <BalanceDisplay balance={user.balance} className="w-full shadow-lg" />
+      <div className="flex items-center justify-between p-4 pb-0">
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={() => onNavigate('desafio-x')} 
+            variant="primary" 
+            className="px-16 py-3 text-2xl font-bold min-w-0"
+            fullWidth={false}
+          >
+            Desafio X
+          </Button>
+          <CircularProgress percentage={25} size={50} strokeWidth={3} />
+        </div>
+        <BalanceDisplay balance={user.balance} className="shadow-lg" />
       </div>
       <div className="flex-1 overflow-auto">
         {/* Logo */}

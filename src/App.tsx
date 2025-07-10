@@ -67,6 +67,7 @@ function App() {
     message: '',
     isVisible: false
   });
+  const [userCount, setUserCount] = useState(0);
 
   const showNotification = (type: 'success' | 'error' | 'achievement', message: string) => {
     setNotification({ type, message, isVisible: true });
@@ -93,6 +94,94 @@ function App() {
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) setUser(JSON.parse(savedUser));
+  }, []);
+
+  // Buscar número de usuários cadastrados
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true });
+        
+        if (!error && count !== null) {
+          setUserCount(count);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar contagem de usuários:', err);
+      }
+    };
+
+    fetchUserCount();
+  }, []);
+
+  // Lidar com retorno do OAuth (Google)
+  useEffect(() => {
+    const handleAuthChange = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        // Verificar se o usuário já existe na tabela users
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (userError || !userData) {
+          // Verificar se está entre os primeiros 100 usuários
+          const { hasBonus, userCount } = await checkAndGetBonus(session.user.id);
+          const initialBalance = hasBonus ? 5 : 0;
+          
+          // Criar novo usuário se não existir
+          const { data: newUser, error: createError } = await supabase
+            .from('users')
+            .insert({ 
+              id: session.user.id, 
+              username: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Usuário',
+              email: session.user.email || '',
+              balance: initialBalance, 
+              wins: 0, 
+              losses: 0, 
+              achievements: [] 
+            })
+            .select()
+            .single();
+          
+          if (createError || !newUser) {
+            showNotification('error', 'Erro ao criar perfil do usuário.');
+            return;
+          }
+          
+          setUser(newUser);
+          localStorage.setItem('user', JSON.stringify(newUser));
+          setCurrentScreen('home');
+          
+          if (hasBonus) {
+            showNotification('success', `Login com Google realizado com sucesso! Você foi o ${userCount + 1}º usuário e ganhou R$ 5,00 de bônus!`);
+          } else {
+            showNotification('success', 'Login com Google realizado com sucesso! Os primeiros 100 usuários já receberam o bônus.');
+          }
+        } else {
+          // Usuário já existe
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+          setCurrentScreen('home');
+          showNotification('success', 'Login com Google realizado com sucesso!');
+        }
+      }
+    };
+
+    handleAuthChange();
+
+    // Escutar mudanças na autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        await handleAuthChange();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -126,6 +215,49 @@ function App() {
     }
   };
 
+  // Função para verificar se o usuário está entre os primeiros 100
+  const checkAndGetBonus = async (userId: string): Promise<{ hasBonus: boolean; userCount: number }> => {
+    try {
+      // Contar quantos usuários já existem
+      const { count, error } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) {
+        console.error('Erro ao contar usuários:', error);
+        return { hasBonus: false, userCount: 0 };
+      }
+      
+      const userCount = count || 0;
+      const hasBonus = userCount < 100;
+      
+      return { hasBonus, userCount };
+    } catch (err) {
+      console.error('Erro ao verificar bônus:', err);
+      return { hasBonus: false, userCount: 0 };
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      
+      if (error) {
+        showNotification('error', 'Erro ao fazer login com Google: ' + error.message);
+        return;
+      }
+      
+      showNotification('success', 'Redirecionando para o Google...');
+    } catch (err: any) {
+      showNotification('error', 'Erro inesperado ao fazer login com Google.');
+    }
+  };
+
   const register = async (username: string, email: string, password: string) => {
     try {
       // Cria usuário no Supabase Auth
@@ -133,10 +265,15 @@ function App() {
       if (authError || !authData.user) {
         showNotification('error', 'Erro ao criar conta: ' + (authError?.message || '')); return;
       }
+      
+      // Verificar se está entre os primeiros 100 usuários
+      const { hasBonus, userCount } = await checkAndGetBonus(authData.user.id);
+      const initialBalance = hasBonus ? 5 : 0;
+      
       // Cria usuário na tabela users
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .insert({ id: authData.user.id, username, email, balance: 50, wins: 0, losses: 0, achievements: [] })
+        .insert({ id: authData.user.id, username, email, balance: initialBalance, wins: 0, losses: 0, achievements: [] })
         .select()
         .single();
       if (userError || !userData) {
@@ -145,7 +282,12 @@ function App() {
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
       setCurrentScreen('home');
-      showNotification('success', 'Conta criada com sucesso! Você ganhou R$ 50,00 de bônus!');
+      
+      if (hasBonus) {
+        showNotification('success', `Conta criada com sucesso! Você foi o ${userCount + 1}º usuário e ganhou R$ 5,00 de bônus!`);
+      } else {
+        showNotification('success', 'Conta criada com sucesso! Os primeiros 100 usuários já receberam o bônus.');
+      }
     } catch (err: any) {
       showNotification('error', 'Erro inesperado ao criar conta.');
     }
@@ -482,6 +624,8 @@ function App() {
           <LoginScreen
             onNavigate={setCurrentScreen}
             onLogin={login}
+            onGoogleLogin={loginWithGoogle}
+            userCount={userCount}
           />
         );
       case 'register':
