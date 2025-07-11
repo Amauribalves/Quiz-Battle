@@ -188,6 +188,8 @@ function App() {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
+        // Exibe o erro do Supabase no console para depuração
+        console.log('Erro do Supabase:', error);
         showNotification('error', 'Erro ao fazer login: ' + error.message);
         return;
       }
