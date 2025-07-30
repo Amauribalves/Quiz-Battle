@@ -29,9 +29,14 @@ const supabaseUrl = 'https://wgklhpkuurzfesnnpdhj.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indna2xocGt1dXJ6ZmVzbm5wZGhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MTAxOTMsImV4cCI6MjA2NjI4NjE5M30.EOOa8euGb1M2XV__N7jJ3jEEV53BF-ibtfcFpKFmFbg';
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+function timeout(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
   const [user, setUser] = useState<User | null>(null);
+  const [isRegistering, setIsRegistering] = useState(false); // Flag para controlar cadastro
   const [gameState, setGameState] = useState<GameState>({
     currentQuestion: null,
     questionIndex: 0,
@@ -115,85 +120,90 @@ function App() {
     fetchUserCount();
   }, []);
 
-  // Lidar com retorno do OAuth (Google)
-  useEffect(() => {
-    const handleAuthChange = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+  // Lidar com retorno do OAuth (Google) - COMENTADO TEMPORARIAMENTE
+  // useEffect(() => {
+  //   const handleAuthChange = async () => {
+  //     const { data: { session } } = await supabase.auth.getSession();
       
-      if (session?.user) {
-        // Verificar se o usuário já existe na tabela users
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+  //     if (session?.user) {
+  //       // Verificar se o usuário já existe na tabela users
+  //       const { data: userData, error: userError } = await supabase
+  //         .from('users')
+  //         .select('*')
+  //         .eq('id', session.user.id)
+  //         .single();
         
-        if (userError || !userData) {
-          // Verificar se está entre os primeiros 100 usuários
-          const { hasBonus, userCount } = await checkAndGetBonus(session.user.id);
-          const initialBalance = hasBonus ? 5 : 0;
+  //       if (userError || !userData) {
+  //         // Verificar se está entre os primeiros 100 usuários
+  //         const { hasBonus, userCount } = await checkAndGetBonus(session.user.id);
+  //         const initialBalance = hasBonus ? 5 : 0;
           
-          // Criar novo usuário se não existir
-          const { data: newUser, error: createError } = await supabase
-            .from('users')
-            .insert({ 
-              id: session.user.id, 
-              username: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Usuário',
-              email: session.user.email || '',
-              balance: initialBalance, 
-              wins: 0, 
-              losses: 0, 
-              achievements: [] 
-            })
-            .select()
-            .single();
+  //         // Criar novo usuário se não existir
+  //         const { data: newUser, error: createError } = await supabase
+  //           .from('users')
+  //           .insert({ 
+  //             id: session.user.id, 
+  //             username: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Usuário',
+  //             email: session.user.email || '',
+  //             balance: initialBalance, 
+  //             wins: 0, 
+  //             losses: 0, 
+  //             achievements: [] 
+  //           })
+  //           .select()
+  //           .single();
           
-          if (createError || !newUser) {
-            showNotification('error', 'Erro ao criar perfil do usuário.');
-            return;
-          }
+  //         if (createError || !newUser) {
+  //           showNotification('error', 'Erro ao criar perfil do usuário.');
+  //           return;
+  //         }
           
-          setUser(newUser);
-          localStorage.setItem('user', JSON.stringify(newUser));
-          setCurrentScreen('home');
+  //         setUser(newUser);
+  //         localStorage.setItem('user', JSON.stringify(newUser));
+  //         setCurrentScreen('home');
           
-          if (hasBonus) {
-            showNotification('success', `Login com Google realizado com sucesso! Você foi o ${userCount + 1}º usuário e ganhou R$ 5,00 de bônus!`);
-          } else {
-            showNotification('success', 'Login com Google realizado com sucesso! Os primeiros 100 usuários já receberam o bônus.');
-          }
-        } else {
-          // Usuário já existe
-          setUser(userData);
-          localStorage.setItem('user', JSON.stringify(userData));
-          setCurrentScreen('home');
-          showNotification('success', 'Login com Google realizado com sucesso!');
-        }
-      }
-    };
+  //         if (hasBonus) {
+  //           showNotification('success', `Login com Google realizado com sucesso! Você foi o ${userCount + 1}º usuário e ganhou R$ 5,00 de bônus!`);
+  //         } else {
+  //           showNotification('success', 'Login com Google realizado com sucesso! Os primeiros 100 usuários já receberam o bônus.');
+  //         }
+  //       } else {
+  //         // Usuário já existe
+  //         setUser(userData);
+  //         localStorage.setItem('user', JSON.stringify(userData));
+  //         setCurrentScreen('home');
+  //         showNotification('success', 'Login com Google realizado com sucesso!');
+  //       }
+  //     }
+  //   };
 
-    handleAuthChange();
+  //   // Só executar handleAuthChange se não estiver cadastrando
+  //   if (!isRegistering) {
+  //     handleAuthChange();
+  //   }
 
-    // Escutar mudanças na autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        await handleAuthChange();
-      }
-    });
+  //   // Escutar mudanças na autenticação
+  //   const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+  //     // Só processar se for SIGNED_IN e não estiver cadastrando
+  //     if (event === 'SIGNED_IN' && session?.user && !isRegistering) {
+  //       await handleAuthChange();
+  //     }
+  //   });
 
-    return () => subscription.unsubscribe();
-  }, []);
+  //   return () => subscription.unsubscribe();
+  // }, [isRegistering]);
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Tentando login com:', email);
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      console.log('Resultado do signInWithPassword:', data, error);
       if (error) {
-        // Exibe o erro do Supabase no console para depuração
-        console.log('Erro do Supabase:', error);
         showNotification('error', 'Erro ao fazer login: ' + error.message);
         return;
       }
       const userAuth = data.user;
+      console.log('Usuário autenticado:', userAuth);
       if (!userAuth) {
         showNotification('error', 'Usuário não encontrado.');
         return;
@@ -204,6 +214,7 @@ function App() {
         .select('*')
         .eq('id', userAuth.id)
         .single();
+      console.log('Resultado do select na tabela users:', userData, userError);
       if (userError || !userData) {
         showNotification('error', 'Usuário não encontrado no banco.');
         return;
@@ -262,36 +273,83 @@ function App() {
 
   const register = async (username: string, email: string, password: string) => {
     try {
-      // Cria usuário no Supabase Auth
+      setIsRegistering(true); // Marcar que está cadastrando
+      console.log('=== INICIANDO CADASTRO ===');
+      console.log('Antes do signUp');
       const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+      console.log('Depois do signUp', authData, authError);
+      
       if (authError || !authData.user) {
-        showNotification('error', 'Erro ao criar conta: ' + (authError?.message || '')); return;
+        console.log('Erro ao criar conta:', authError);
+        showNotification('error', 'Erro ao criar conta: ' + (authError?.message || ''));
+        setIsRegistering(false);
+        return;
       }
+
+      console.log('Aguardando 1 segundo...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      console.log('Antes do getUser');
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Depois do getUser', user);
       
-      // Verificar se está entre os primeiros 100 usuários
-      const { hasBonus, userCount } = await checkAndGetBonus(authData.user.id);
+      if (!user) {
+        console.log('Usuário não autenticado após cadastro');
+        showNotification('error', 'Usuário não autenticado após cadastro.');
+        setIsRegistering(false);
+        return;
+      }
+
+      console.log('Verificando bônus...');
+      const { hasBonus, userCount } = await checkAndGetBonus(user.id);
       const initialBalance = hasBonus ? 5 : 0;
-      
-      // Cria usuário na tabela users
-      const { data: userData, error: userError } = await supabase
+      console.log('Bônus:', hasBonus, 'UserCount:', userCount, 'Balance:', initialBalance);
+
+      console.log('Antes do insert na tabela users');
+      const insertPromise = supabase
         .from('users')
-        .insert({ id: authData.user.id, username, email, balance: initialBalance, wins: 0, losses: 0, achievements: [] })
-        .select()
-        .single();
+        .insert({
+          id: user.id,
+          username,
+          email,
+          balance: initialBalance,
+          wins: 0,
+          losses: 0,
+          achievements: [],
+          idade: 0, // pode ajustar para null ou outro valor se necessário
+          avatar: 0 // pode ajustar para null ou outro valor se necessário
+        })
+        .select();
+
+      const timeoutPromise = timeout(5000).then(() => ({ data: null, error: { message: 'Timeout no insert!' } }));
+
+      const { data: userDataArray, error: userError } = await Promise.race([insertPromise, timeoutPromise]);
+      console.log('Depois do insert', userDataArray, userError);
+
+      const userData = userDataArray && userDataArray[0];
+
       if (userError || !userData) {
-        showNotification('error', 'Erro ao criar perfil: ' + (userError?.message || '')); return;
+        console.log('Erro ao criar perfil:', userError);
+        showNotification('error', 'Erro ao criar perfil: ' + (userError?.message || ''));
+        setIsRegistering(false);
+        return;
       }
+
+      console.log('Usuário criado com sucesso:', userData);
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
       setCurrentScreen('home');
-      
+      setIsRegistering(false); // Marcar que terminou o cadastro
+
       if (hasBonus) {
         showNotification('success', `Conta criada com sucesso! Você foi o ${userCount + 1}º usuário e ganhou R$ 5,00 de bônus!`);
       } else {
         showNotification('success', 'Conta criada com sucesso! Os primeiros 100 usuários já receberam o bônus.');
       }
     } catch (err: any) {
+      console.log('Erro inesperado:', err);
       showNotification('error', 'Erro inesperado ao criar conta.');
+      setIsRegistering(false);
     }
   };
 
@@ -634,6 +692,7 @@ function App() {
         return (
           <RegisterScreen
             onNavigate={setCurrentScreen}
+            onRegister={register}
           />
         );
       case 'home':

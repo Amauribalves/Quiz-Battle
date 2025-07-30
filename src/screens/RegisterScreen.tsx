@@ -4,13 +4,13 @@ import { Logo } from '../components/Logo';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Screen } from '../types';
-import { supabase } from '../App';
 
 interface RegisterScreenProps {
   onNavigate: (screen: Screen) => void;
+  onRegister: (username: string, email: string, password: string) => Promise<void>;
 }
 
-export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigate }) => {
+export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigate, onRegister }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,37 +19,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onNavigate }) =>
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { username }
-      }
-    });
+    await onRegister(username, email, password);
     setLoading(false);
-    if (error) {
-      alert('Erro ao cadastrar: ' + error.message);
-    } else {
-      // Inserir na tabela users
-      const user = data.user;
-      if (user) {
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert([
-            {
-              id: user.id,
-              email: user.email,
-              username: username,
-              balance: 0 // Valor inicial para evitar erro de not-null
-            }
-          ]);
-        if (insertError) {
-          alert('Usuário criado, mas erro ao salvar na tabela users: ' + insertError.message);
-        }
-      }
-      alert('Cadastro realizado! Verifique seu e-mail.');
-      onNavigate('login');
-    }
   }
 
   return (
