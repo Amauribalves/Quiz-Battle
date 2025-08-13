@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, Wallet, CreditCard, Trophy, LogOut, Users, List, Medal, User as UserIcon, Home, History } from 'lucide-react';
+import { Target, Wallet, CreditCard, LogOut, Users, List, Medal, User as UserIcon, Home, History } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { Button } from '../components/Button';
 import { BalanceDisplay } from '../components/BalanceDisplay';
@@ -28,27 +28,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onLogo
 
   return (
     <div className="flex flex-col min-h-screen w-full max-w-full px-2 sm:px-0 sm:max-w-md mx-auto">
-      {/* Topo: Desafio X e Saldos */}
-      <div className="flex items-center justify-between p-4 pb-0">
-        <div className="flex items-center gap-3">
-          <Button 
-            onClick={() => onNavigate('desafio-x')} 
-            variant="primary" 
-            className="px-16 py-3 text-2xl font-bold min-w-0"
-            fullWidth={false}
-          >
-            Desafio X
-          </Button>
-          <CircularProgress percentage={25} size={50} strokeWidth={3} />
-        </div>
-        <BalanceDisplay balance={user.balance} className="shadow-lg" />
-      </div>
       <div className="flex-1 overflow-auto">
-        {/* Logo */}
-        <div className="mt-1" />
-        <div className="flex justify-center">
-          <Logo size="md" />
+        {/* Topo: Logo e Saldo */}
+        <div className="flex items-center justify-between p-4 pb-0">
+          <div className="flex-shrink-0">
+            <Logo size="md" />
+          </div>
+          <div className="flex-shrink-0">
+            <BalanceDisplay balance={user.balance} className="shadow-lg" />
+          </div>
         </div>
+        
         {/* Card com nome do usuário */}
         <Card className="mb-4 mt-0 p-2 w-full">
           <div className="flex items-center justify-between text-lg font-semibold text-gray-800">
@@ -65,6 +55,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onLogo
             </button>
           </div>
         </Card>
+        
+        {/* Desafio X com marcador de porcentagem */}
+        <Card className="mb-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+          <div className="flex items-center justify-between p-4">
+            <Button 
+              onClick={() => onNavigate('desafio-x')} 
+              variant="primary" 
+              className="px-4 py-2 text-base font-bold min-w-0 bg-white text-blue-600 hover:bg-gray-100"
+              fullWidth={false}
+            >
+              Desafio X
+            </Button>
+            <CircularProgress percentage={25} size={40} strokeWidth={3} />
+          </div>
+        </Card>
         {/* Vitórias e Derrotas */}
         <StatsGrid wins={user.wins} losses={user.losses} />
         {/* Botões principais */}
@@ -77,9 +82,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onLogo
           </Button>
           <Button variant="secondary" onClick={() => onNavigate('achievements')} icon={Medal}>
             Conquistas
-          </Button>
-          <Button variant="secondary" onClick={() => onNavigate('missions')} icon={Trophy}>
-            Missões
           </Button>
           <Button variant="secondary" onClick={() => onNavigate('friends')} icon={Users}>
             Amigos

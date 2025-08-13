@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Hash, User, ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Building2, Hash, User, ArrowLeft, CheckCircle, AlertTriangle, DollarSign, Info } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
@@ -62,6 +62,29 @@ export const WithdrawScreen: React.FC<WithdrawScreenProps> = ({ user, onNavigate
   return (
     <div className="p-8">
       <Logo size="md" />
+      
+      {/* Saldo disponível para saque */}
+      <Card className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-full">
+              <DollarSign className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-green-800">Saldo Disponível</h3>
+              <p className="text-sm text-green-700">Valor máximo para saque</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-green-800">
+              R$ {withdrawableAmount.toFixed(2)}
+            </div>
+            <div className="text-xs text-green-600">
+              Saldo total: R$ {user.balance.toFixed(2)}
+            </div>
+          </div>
+        </div>
+      </Card>
       
       {/* Fee information */}
       <Card className="mb-6 bg-orange-50 border-l-4 border-orange-500">
