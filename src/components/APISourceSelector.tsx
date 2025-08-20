@@ -10,11 +10,21 @@ interface APISourceSelectorProps {
 
 const sources = [
   {
-    id: 'local' as const,
-    name: 'Perguntas Locais',
-    description: 'Banco de dados interno',
-    icon: HardDrive,
-    color: 'from-gray-500 to-slate-600',
+    id: 'auto' as const,
+    name: 'Modo Automático',
+    description: 'Escolhe a melhor fonte automaticamente',
+    icon: Zap,
+    color: 'from-green-500 to-emerald-600',
+    free: true,
+    speed: 'Inteligente',
+    recommended: true
+  },
+  {
+    id: 'trivia-db-extended' as const,
+    name: 'Open Trivia DB+',
+    description: 'API gratuita com +4000 perguntas em português',
+    icon: Globe,
+    color: 'from-blue-500 to-cyan-600',
     free: true,
     speed: 'Muito Rápido'
   },
@@ -30,7 +40,7 @@ const sources = [
   {
     id: 'trivia-api' as const,
     name: 'The Trivia API',
-    description: 'API moderna e rápida',
+    description: 'API moderna e rápida (+1000 perguntas)',
     icon: Zap,
     color: 'from-yellow-500 to-orange-600',
     free: true,
@@ -39,7 +49,7 @@ const sources = [
   {
     id: 'jservice' as const,
     name: 'JService (Jeopardy!)',
-    description: 'Perguntas do programa Jeopardy!',
+    description: 'Perguntas do programa Jeopardy! (+200k)',
     icon: Trophy,
     color: 'from-indigo-500 to-purple-600',
     free: true,
@@ -48,11 +58,20 @@ const sources = [
   {
     id: 'quiz-api' as const,
     name: 'Quiz API',
-    description: 'API premium com perguntas de qualidade',
+    description: 'API premium com +10k perguntas por categoria',
     icon: Database,
     color: 'from-purple-500 to-indigo-600',
     free: false,
     speed: 'Rápido'
+  },
+  {
+    id: 'local' as const,
+    name: 'Perguntas Locais',
+    description: 'Banco de dados interno (fallback)',
+    icon: HardDrive,
+    color: 'from-gray-500 to-slate-600',
+    free: true,
+    speed: 'Muito Rápido'
   },
   {
     id: 'custom' as const,
@@ -95,6 +114,15 @@ export const APISourceSelector: React.FC<APISourceSelectorProps> = ({
                     <h4 className={`font-semibold ${isSelected ? 'text-white' : 'text-gray-800'}`}>
                       {source.name}
                     </h4>
+                    {source.recommended && (
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        isSelected 
+                          ? 'bg-white/20 text-white' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        ★ RECOMENDADO
+                      </span>
+                    )}
                     {source.free && (
                       <span className={`text-xs px-2 py-1 rounded-full ${
                         isSelected 

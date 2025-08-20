@@ -22,7 +22,7 @@ export const useQuestions = ({
   category,
   difficulty,
   count = 5,
-  source = 'local',
+  source = 'auto',
   autoFetch = false
 }: UseQuestionsOptions): UseQuestionsReturn => {
   const [questions, setQuestions] = useState<Question[]>([]);

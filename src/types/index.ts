@@ -50,6 +50,9 @@ export interface GameState {
   opponent?: Player;
   isInTiebreaker?: boolean;
   tiebreakerRound?: number;
+  questionTimeLimit?: number; // Tempo limite por questão (padrão: 10s)
+  maxQuestions?: number; // Número máximo de questões (padrão: 10)
+  tiebreakerQuestions?: number; // Questões para desempate (padrão: 5)
 }
 
 // Interfaces para multiplayer
@@ -77,6 +80,10 @@ export interface GameRoom {
   isInTiebreaker: boolean;
   tiebreakerRound: number;
   questions: Question[];
+  questionTimeLimit: number; // Tempo limite por questão (padrão: 10s)
+  maxQuestions: number; // Número máximo de questões (padrão: 10)
+  tiebreakerQuestions: number; // Questões para desempate (padrão: 5)
+  roundStartTime: number; // Timestamp de início da questão atual
 }
 
 export interface MatchmakingRequest {
@@ -129,6 +136,8 @@ export interface APIValidationResult {
   errors: string[];
   warnings: string[];
 }
+
+export type APISource = 'local' | 'trivia' | 'quiz-api' | 'custom' | 'jservice' | 'trivia-api' | 'supabase' | 'auto' | 'trivia-db-extended';
 
 export interface APIStats {
   totalRequests: number;

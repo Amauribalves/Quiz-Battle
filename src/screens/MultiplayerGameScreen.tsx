@@ -22,7 +22,7 @@ const MultiplayerGameScreen: React.FC<MultiplayerGameScreenProps> = ({
 }) => {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(10);
   const [room, setRoom] = useState<GameRoom | null>(gameState.room || null);
 
   const opponent = gameState.opponent;
@@ -37,8 +37,17 @@ const MultiplayerGameScreen: React.FC<MultiplayerGameScreenProps> = ({
     }
   }, [timeLeft, gameState.isGameActive]);
 
+  // Sincronizar tempo com a sala
   useEffect(() => {
-    setTimeLeft(30);
+    if (room && room.timeLeft !== undefined) {
+      setTimeLeft(room.timeLeft);
+    }
+  }, [room?.timeLeft]);
+
+  useEffect(() => {
+    // Usar o tempo da sala se disponível, senão usar 10 segundos
+    const questionTime = room?.questionTimeLimit || 10;
+    setTimeLeft(questionTime);
     setSelectedAnswer(null);
     setShowResult(false);
     
@@ -51,7 +60,7 @@ const MultiplayerGameScreen: React.FC<MultiplayerGameScreenProps> = ({
     if (gameState.room && opponent?.id.startsWith('bot_')) {
       multiplayerService.simulateBotAnswer(gameState.room.id, opponent.id);
     }
-  }, [gameState.currentQuestion, gameState.room]);
+  }, [gameState.currentQuestion, gameState.room, room?.questionTimeLimit]);
 
   const handleAnswer = async (answerIndex: number) => {
     if (selectedAnswer !== null || !gameState.currentQuestion || !room) return;
@@ -91,7 +100,7 @@ const MultiplayerGameScreen: React.FC<MultiplayerGameScreenProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-600 to-purple-800 p-4">
-      {gameState.isGameActive && <Timer timeLeft={timeLeft} totalTime={30} />}
+      {gameState.isGameActive && <Timer timeLeft={timeLeft} totalTime={room?.questionTimeLimit || 10} />}
       
       <div className="max-w-2xl mx-auto pt-16">
         {/* Status do jogo */}
@@ -101,7 +110,9 @@ const MultiplayerGameScreen: React.FC<MultiplayerGameScreenProps> = ({
               <Swords className="w-6 h-6 text-orange-600" />
               <div className="text-center">
                 <div className="font-bold text-orange-800">DESEMPATE - Rodada {tiebreakerRound}</div>
-                <div className="text-sm text-orange-600">5 perguntas para decidir o vencedor!</div>
+                <div className="text-sm text-orange-600">
+                  {room?.tiebreakerQuestions || 5} perguntas para decidir o vencedor!
+                </div>
               </div>
             </div>
           </Card>

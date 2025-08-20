@@ -62,7 +62,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onLogo
             <Button 
               onClick={() => onNavigate('desafio-x')} 
               variant="primary" 
-              className="px-4 py-2 text-base font-bold min-w-0 bg-white text-blue-600 hover:bg-gray-100"
+              className="px-3 py-1.5 text-sm font-bold min-w-0 bg-white text-blue-600 hover:bg-gray-100"
               fullWidth={false}
             >
               Desafio X

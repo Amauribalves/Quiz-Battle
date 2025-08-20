@@ -41,13 +41,16 @@ function App() {
     currentQuestion: null,
     questionIndex: 0,
     totalQuestions: 10,
-    timeLeft: 30,
+    timeLeft: 10, // 10 segundos por questão
     score: 0,
     isGameActive: false,
     bet: null,
     gameMode: 'solo',
     isInTiebreaker: false,
-    tiebreakerRound: 0
+    tiebreakerRound: 0,
+    questionTimeLimit: 10, // 10 segundos por questão
+    maxQuestions: 10, // Máximo de 10 questões
+    tiebreakerQuestions: 5 // 5 questões para desempate
   });
   const [currentBet, setCurrentBet] = useState<Bet | null>(null);
   const [gameStats, setGameStats] = useState({

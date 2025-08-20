@@ -1,8 +1,9 @@
-import { Question } from '../types';
+import { Question, APISource } from '../types';
 import { apiCache } from './apiCache';
 import { APIValidator } from './apiValidator';
 import { apiMetrics } from './apiMetrics';
 import { supabase } from '../App';
+import { API_CONFIG, getBestStrategy, getCategoryUrls } from '../config/apiConfig';
 
 // Configuração avançada da API
 const ENHANCED_API_CONFIG = {
@@ -10,18 +11,23 @@ const ENHANCED_API_CONFIG = {
   QUIZ_API: 'https://quizapi.io/api/v1/questions',
   CUSTOM_API: import.meta.env.VITE_QUIZ_API_URL || 'http://localhost:3001/api',
   JSERVICE: 'https://jservice.io/api/clues',
-  TRIVIA_API: 'https://the-trivia-api.com/api/questions'
+  TRIVIA_API: 'https://the-trivia-api.com/api/questions',
+  // Novas APIs gratuitas
+  TRIVIA_DB_PT: 'https://opentdb.com/api.php?amount=50&lang=pt',
+  QUIZ_DB: 'https://opentdb.com/api.php?amount=50&type=multiple',
+  // API brasileira gratuita
+  BRAZIL_QUIZ: 'https://opentdb.com/api.php?amount=50&category=22&lang=pt'
 };
 
 // Mapeamento avançado de categorias
 const ENHANCED_CATEGORY_MAP = {
   trivia: {
-    current: 9,
-    math: 19,
-    english: 9,
-    culture: 22,
-    sports: 21,
-    general: 9
+    current: 9,      // General Knowledge
+    math: 19,        // Mathematics
+    english: 9,      // General Knowledge
+    culture: 22,     // Geography
+    sports: 21,      // Sports
+    general: 9       // General Knowledge
   },
   'trivia-api': {
     current: 'general_knowledge',
@@ -30,6 +36,15 @@ const ENHANCED_CATEGORY_MAP = {
     culture: 'geography',
     sports: 'sport_and_leisure',
     general: 'general_knowledge'
+  },
+  // Mapeamento para Open Trivia DB com mais categorias
+  'trivia-db-extended': {
+    current: [9, 10, 11, 12],           // General Knowledge + Books + Film + Music
+    math: [19, 25, 27],                  // Mathematics + Art + Animals
+    english: [9, 10, 11, 12, 15],       // General + Books + Film + Music + Video Games
+    culture: [22, 23, 24, 26],          // Geography + History + Politics + Celebrities
+    sports: [21, 32],                    // Sports + Cartoons & Animations
+    general: [9, 10, 11, 12, 15, 17]   // General + Books + Film + Music + Games + Science
   }
 };
 
@@ -46,7 +61,7 @@ class EnhancedQuestionService {
     category: string,
     difficulty: string,
     count: number = 5,
-    source: 'local' | 'trivia' | 'quiz-api' | 'custom' | 'jservice' | 'trivia-api' | 'supabase' = 'local'
+    source: APISource = 'auto'
   ): Promise<Question[]> {
     const cacheKey = `questions_${source}_${category}_${difficulty}_${count}`;
     
@@ -62,6 +77,9 @@ class EnhancedQuestionService {
 
     try {
       switch (source) {
+        case 'auto':
+          questions = await this.getQuestionsAuto(category, difficulty, count);
+          break;
         case 'trivia':
           questions = await this.getQuestionsFromTriviaDB(category, difficulty, count);
           break;
@@ -179,6 +197,96 @@ class EnhancedQuestionService {
     });
   }
 
+  // Método inteligente que escolhe automaticamente a melhor fonte
+  private async getQuestionsAuto(category: string, difficulty: string, count: number): Promise<Question[]> {
+    // Obter a melhor estratégia baseada na categoria
+    const strategy = getBestStrategy(category, difficulty, count);
+    
+    if (strategy === 'auto') {
+      // Estratégia automática inteligente
+      const sources = [
+        { name: 'trivia-db-extended', priority: 1 },
+        { name: 'trivia', priority: 2 },
+        { name: 'trivia-api', priority: 3 },
+        { name: 'jservice', priority: 4 },
+        { name: 'local', priority: 5 }
+      ];
+
+      // Tentar cada fonte em ordem de prioridade
+      for (const source of sources) {
+        try {
+          let questions: Question[] = [];
+          
+          switch (source.name) {
+            case 'trivia-db-extended':
+              questions = await this.getQuestionsFromTriviaDBExtended(category, difficulty, count);
+              break;
+            case 'trivia':
+              questions = await this.getQuestionsFromTriviaDB(category, difficulty, count);
+              break;
+            case 'trivia-api':
+              questions = await this.getQuestionsFromTriviaAPI(category, difficulty, count);
+              break;
+            case 'jservice':
+              questions = await this.getQuestionsFromJService(category, difficulty, count);
+              break;
+            case 'local':
+              questions = await this.getLocalQuestions(category, difficulty, count);
+              break;
+          }
+
+          if (questions.length >= count) {
+            console.log(`Usando fonte: ${source.name} - ${questions.length} perguntas encontradas`);
+            return questions.slice(0, count);
+          }
+        } catch (error) {
+          console.log(`Fonte ${source.name} falhou, tentando próxima...`);
+          continue;
+        }
+      }
+    } else {
+      // Usar estratégia específica
+      for (const source of strategy) {
+        try {
+          let questions: Question[] = [];
+          
+          switch (source) {
+            case 'trivia-db-extended':
+              questions = await this.getQuestionsFromTriviaDBExtended(category, difficulty, count);
+              break;
+            case 'trivia':
+              questions = await this.getQuestionsFromTriviaDB(category, difficulty, count);
+              break;
+            case 'trivia-api':
+              questions = await this.getQuestionsFromTriviaAPI(category, difficulty, count);
+              break;
+            case 'jservice':
+              questions = await this.getQuestionsFromJService(category, difficulty, count);
+              break;
+            case 'quiz-api':
+              questions = await this.getQuestionsFromQuizAPI(category, difficulty, count);
+              break;
+            case 'local':
+              questions = await this.getLocalQuestions(category, difficulty, count);
+              break;
+          }
+
+          if (questions.length >= count) {
+            console.log(`Usando fonte: ${source} - ${questions.length} perguntas encontradas`);
+            return questions.slice(0, count);
+          }
+        } catch (error) {
+          console.log(`Fonte ${source} falhou, tentando próxima...`);
+          continue;
+        }
+      }
+    }
+
+    // Se todas falharem, usar perguntas locais
+    console.log('Todas as fontes falharam, usando perguntas locais');
+    return await this.getLocalQuestions(category, difficulty, count);
+  }
+
   // Método auxiliar para gerar opções falsas (para APIs que não fornecem)
   private generateFakeOptions(correctAnswer: string, count: number): string[] {
     const fakeOptions = [
@@ -232,6 +340,49 @@ class EnhancedQuestionService {
     }
 
     throw lastError!;
+  }
+
+  // Método que busca perguntas de múltiplas categorias relacionadas
+  private async getQuestionsFromTriviaDBExtended(
+    category: string,
+    difficulty: string,
+    count: number
+  ): Promise<Question[]> {
+    const categoryIds = ENHANCED_CATEGORY_MAP['trivia-db-extended'][category as keyof typeof ENHANCED_CATEGORY_MAP['trivia-db-extended']] || [9];
+    let allQuestions: Question[] = [];
+
+    // Buscar perguntas de todas as categorias relacionadas
+    for (const categoryId of categoryIds) {
+      try {
+        const url = `${ENHANCED_API_CONFIG.TRIVIA_DB}?amount=20&category=${categoryId}&difficulty=${difficulty}&type=multiple`;
+        const response = await this.fetchWithRetry(url);
+        const data = await response.json();
+        
+        if (data.response_code === 0 && data.results.length > 0) {
+          const questions = data.results.map((item: any, index: number) => {
+            const options = [...item.incorrect_answers, item.correct_answer].sort(() => Math.random() - 0.5);
+            const correctAnswer = options.indexOf(item.correct_answer);
+            
+            return {
+              id: `trivia_ext_${categoryId}_${Date.now()}_${index}`,
+              text: this.decodeHtml(item.question),
+              options: options.map(opt => this.decodeHtml(opt)),
+              correctAnswer,
+              category,
+              difficulty: difficulty as 'easy' | 'medium' | 'hard'
+            };
+          });
+          
+          allQuestions.push(...questions);
+        }
+      } catch (error) {
+        console.log(`Erro ao buscar categoria ${categoryId}:`, error);
+        continue;
+      }
+    }
+
+    // Embaralhar e retornar as perguntas
+    return allQuestions.sort(() => Math.random() - 0.5);
   }
 
   // Métodos existentes atualizados...

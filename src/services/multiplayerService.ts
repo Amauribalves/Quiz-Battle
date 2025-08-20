@@ -165,9 +165,9 @@ class MultiplayerService {
       hasAnswered: false
     }));
 
-    // Carregar 10 perguntas iniciais
-    const savedConfig = localStorage.getItem('quiz-api-config');
-    const config = savedConfig ? JSON.parse(savedConfig) : { selectedSource: 'local' };
+          // Carregar 10 perguntas iniciais
+      const savedConfig = localStorage.getItem('quiz-api-config');
+      const config = savedConfig ? JSON.parse(savedConfig) : { selectedSource: 'auto' };
 
     // Buscar perguntas já respondidas pelos dois jogadores
     const respondidas1 = await this.buscarPerguntasRespondidas(players[0]?.id);
@@ -210,12 +210,16 @@ class MultiplayerService {
       status: 'active',
       currentQuestion: questions[0] || null,
       questionIndex: 0,
-      totalQuestions: 10, // Começar com 10 questões
-      timeLeft: 30,
+      totalQuestions: 10, // 10 questões principais
+      timeLeft: 10, // 10 segundos por questão
       createdAt: Date.now(),
       isInTiebreaker: false,
       tiebreakerRound: 0,
-      questions
+      questions,
+      questionTimeLimit: 10, // 10 segundos por questão
+      maxQuestions: 10, // Máximo de 10 questões principais
+      tiebreakerQuestions: 5, // 5 questões para desempate
+      roundStartTime: Date.now()
     };
 
     // Inserir partida na tabela matches do Supabase
@@ -314,7 +318,8 @@ class MultiplayerService {
     } else {
       // Próxima pergunta
       room.currentQuestion = room.questions[room.questionIndex];
-      room.timeLeft = 30;
+      room.timeLeft = room.questionTimeLimit; // Usar o tempo limite configurado (10s)
+      room.roundStartTime = Date.now(); // Registrar início da questão
     }
   }
 
@@ -323,12 +328,41 @@ class MultiplayerService {
     const [player1, player2] = room.players;
     
     if (player1.score === player2.score) {
-      // Empate - iniciar desempate
-      await this.startTiebreaker(room);
-    } else {
-      // Há um vencedor
+      if (room.isInTiebreaker && room.tiebreakerRound >= 3) {
+        // Máximo de 3 rodadas de desempate (15 questões adicionais)
+        console.log('🏁 Máximo de rodadas de desempate atingido - Jogo empatado');
+        room.status = 'finished';
+        // Em caso de empate máximo, dividir o prêmio
+        room.winner = null;
+        
+        // Atualizar a tabela matches no Supabase
+        if (room.bet && room.bet.matchId) {
+          try {
+            await supabase.from('matches')
+              .update({
+                status: 'empatada',
+                finished_at: new Date().toISOString()
+              })
+              .eq('id', room.bet.matchId);
+          } catch (e) {
+            console.error('Erro ao atualizar partida na tabela matches:', e);
+          }
+        }
+      } else {
+        // Empate - iniciar desempate
+        console.log(`🤝 Empate detectado! Iniciando desempate...`);
+        await this.startTiebreaker(room);
+        return; // Não finalizar o jogo ainda
+      }
+    }
+    
+    // Há um vencedor ou empate máximo
+    if (room.status !== 'finished') {
       room.status = 'finished';
       room.winner = player1.score > player2.score ? player1 : player2;
+      
+      console.log(`🏆 Vencedor: ${room.winner.username} com ${room.winner.score} pontos!`);
+      
       // Atualizar a tabela matches no Supabase
       if (room.bet && room.bet.matchId && room.winner) {
         try {
@@ -343,10 +377,11 @@ class MultiplayerService {
           console.error('Erro ao atualizar partida na tabela matches:', e);
         }
       }
-      // Salvar histórico das perguntas para ambos os jogadores
-      await this.salvarHistoricoPerguntas(player1.id, room.questions);
-      await this.salvarHistoricoPerguntas(player2.id, room.questions);
     }
+    
+    // Salvar histórico das perguntas para ambos os jogadores
+    await this.salvarHistoricoPerguntas(player1.id, room.questions);
+    await this.salvarHistoricoPerguntas(player2.id, room.questions);
   }
 
   // Iniciar rodada de desempate
@@ -355,17 +390,20 @@ class MultiplayerService {
     room.tiebreakerRound += 1;
     room.status = 'tiebreaker';
 
+    console.log(`🏆 Iniciando desempate - Rodada ${room.tiebreakerRound}`);
+
     // Buscar perguntas já respondidas pelos dois jogadores para o desempate
     const respondidas1 = await this.buscarPerguntasRespondidas(room.players[0]?.id);
     const respondidas2 = await this.buscarPerguntasRespondidas(room.players[1]?.id);
     const respondidas = Array.from(new Set([...respondidas1, ...respondidas2]));
     const savedConfig = localStorage.getItem('quiz-api-config');
-    const config = savedConfig ? JSON.parse(savedConfig) : { selectedSource: 'local' };
+    const config = savedConfig ? JSON.parse(savedConfig) : { selectedSource: 'auto' };
 
     let tiebreakerQuestions: Question[] = [];
     try {
+      console.log('🔍 Carregando perguntas de desempate...');
       let tentativas = 0;
-      while (tiebreakerQuestions.length < 5 && tentativas < 20) {
+      while (tiebreakerQuestions.length < room.tiebreakerQuestions && tentativas < 30) {
         const qs = await enhancedQuestionService.getQuestions(
           room.bet.category,
           room.bet.difficulty,
@@ -377,22 +415,29 @@ class MultiplayerService {
         }
         tentativas++;
       }
+      console.log(`✅ ${tiebreakerQuestions.length} perguntas de desempate carregadas`);
     } catch (error) {
       console.error('Erro ao carregar perguntas de desempate:', error);
       // Fallback para perguntas locais
       const { getQuestionsByCategory } = await import('../data/questions');
-      tiebreakerQuestions = getQuestionsByCategory(room.bet.category, room.bet.difficulty, 5);
+      tiebreakerQuestions = getQuestionsByCategory(room.bet.category, room.bet.difficulty, room.tiebreakerQuestions);
     }
 
     // Adicionar perguntas de desempate
     room.questions = [...room.questions, ...tiebreakerQuestions];
     room.totalQuestions = room.questions.length;
     
+    // Reset do índice de questões para o desempate
+    room.questionIndex = room.maxQuestions; // Começar após as 10 questões principais
+    
     // Continuar com a próxima pergunta
     if (room.questions[room.questionIndex]) {
       room.currentQuestion = room.questions[room.questionIndex];
-      room.timeLeft = 30;
+      room.timeLeft = room.questionTimeLimit; // 10 segundos para questões de desempate
+      room.roundStartTime = Date.now();
       room.status = 'active';
+      
+      console.log(`🎯 Questão de desempate ${room.questionIndex + 1}/${room.totalQuestions}`);
     }
   }
 
