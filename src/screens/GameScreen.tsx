@@ -21,7 +21,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
 }) => {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [timeLeft, setTimeLeft] = useState(10);
 
   useEffect(() => {
     if (gameState.isGameActive && timeLeft > 0) {
@@ -33,7 +33,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   }, [timeLeft, gameState.isGameActive]);
 
   useEffect(() => {
-    setTimeLeft(30);
+    setTimeLeft(10);
     setSelectedAnswer(null);
     setShowResult(false);
   }, [gameState.currentQuestion]);
@@ -69,7 +69,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-600 to-purple-800 p-4">
-      {gameState.isGameActive && <Timer timeLeft={timeLeft} totalTime={30} />}
+      {gameState.isGameActive && <Timer timeLeft={timeLeft} totalTime={10} />}
       
       <div className="max-w-2xl mx-auto pt-16">
         {/* Header diferente para cada modo */}

@@ -31,10 +31,10 @@ export interface Question {
 
 export interface Bet {
   amount: number;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty?: 'easy' | 'medium' | 'hard'; // Opcional
   category: string;
   multiplier: number;
-  matchId: string;
+  matchId?: string; // Opcional, será definido quando a partida for criada
 }
 
 export interface GameState {
@@ -135,6 +135,48 @@ export interface APIValidationResult {
   isValid: boolean;
   errors: string[];
   warnings: string[];
+}
+
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  type: 'daily' | 'weekly';
+  requirement: {
+    type: 'wins' | 'streak' | 'games_played' | 'correct_answers' | 'category_wins';
+    value: number;
+    category?: string;
+  };
+  reward: {
+    type: 'money' | 'bonus' | 'experience';
+    value: number;
+  };
+  progress: number;
+  isCompleted: boolean;
+  isClaimed: boolean;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface Mission {
+  id: string;
+  title: string;
+  description: string;
+  type: 'daily' | 'weekly' | 'special';
+  requirement: {
+    type: 'wins' | 'streak' | 'games_played' | 'correct_answers' | 'category_wins';
+    value: number;
+    category?: string;
+  };
+  reward: {
+    type: 'money' | 'bonus' | 'experience';
+    value: number;
+  };
+  progress: number;
+  isCompleted: boolean;
+  isClaimed: boolean;
+  expiresAt: string;
+  createdAt: string;
 }
 
 export type APISource = 'local' | 'trivia' | 'quiz-api' | 'custom' | 'jservice' | 'trivia-api' | 'supabase' | 'auto' | 'trivia-db-extended';

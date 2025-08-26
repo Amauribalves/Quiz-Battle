@@ -8,6 +8,7 @@ import { StatsGrid } from '../components/StatsGrid';
 import { Card } from '../components/Card';
 import { CircularProgress } from '../components/CircularProgress';
 import { User, Screen } from '../types';
+              import { useChallenges } from '../hooks/useChallenges';
 
 interface HomeScreenProps {
   user: User;
@@ -16,6 +17,8 @@ interface HomeScreenProps {
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onLogout }) => {
+  const { overallProgress } = useChallenges(user);
+
   // Opções de avatar iguais ao ProfileScreen
   const avatarOptions = [
     <UserIcon size={36} className="text-gray-500" key="default" />, // padrão
@@ -67,7 +70,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ user, onNavigate, onLogo
             >
               Desafio X
             </Button>
-            <CircularProgress percentage={25} size={40} strokeWidth={3} />
+            <CircularProgress percentage={overallProgress} size={40} strokeWidth={3} />
           </div>
         </Card>
         {/* Vitórias e Derrotas */}

@@ -14,6 +14,7 @@ import { DepositScreen } from './screens/DepositScreen';
 import { WithdrawScreen } from './screens/WithdrawScreen';
 import { AchievementsScreen } from './screens/AchievementsScreen';
 import { APIConfigScreen } from './screens/APIConfigScreen';
+import { DesafioXScreen } from './screens/DesafioXScreen';
 import { User, Screen, GameState, Bet, Achievement, GameRoom, MatchmakingRequest } from './types';
 import enhancedQuestionService from './services/enhancedQuestionService';
 import multiplayerService from './services/multiplayerService';
@@ -24,6 +25,7 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { FriendsScreen } from './screens/FriendsScreen';
 import { HistoricoScreen } from './screens/HistoricoScreen';
 import { BottomNavBar } from './components/BottomNavBar';
+import challengeService from './services/challengeService';
 
 const supabaseUrl = 'https://wgklhpkuurzfesnnpdhj.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indna2xocGt1dXJ6ZmVzbm5wZGhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MTAxOTMsImV4cCI6MjA2NjI4NjE5M30.EOOa8euGb1M2XV__N7jJ3jEEV53BF-ibtfcFpKFmFbg';
@@ -83,6 +85,18 @@ function App() {
 
   const hideNotification = () => {
     setNotification(prev => ({ ...prev, isVisible: false }));
+  };
+
+  // Função para atualizar progresso dos desafios após um jogo
+  const updateChallengeProgress = (gameResult: {
+    won: boolean;
+    category?: string;
+    questionsAnswered: number;
+    correctAnswers: number;
+  }) => {
+    if (user) {
+      challengeService.updateProgress(user, gameResult);
+    }
   };
 
   // Conectar ao serviço multiplayer quando o usuário faz login
@@ -521,7 +535,7 @@ function App() {
         currentQuestion: questions[0],
         questionIndex: 0,
         totalQuestions: questions.length,
-        timeLeft: 30,
+        timeLeft: 10,
         score: 0,
         isGameActive: true,
         bet: null,
@@ -600,11 +614,21 @@ function App() {
     if (!user) return;
     if (gameState.gameMode === 'solo') {
       await salvarHistoricoPerguntas(user.id, questions);
+      
+      // Atualizar progresso dos desafios X para modo solo
+      const gameResult = {
+        won: finalScore > gameState.totalQuestions / 2, // Considera vitória se acertar mais da metade
+        category: gameState.currentQuestion?.category || 'general',
+        questionsAnswered: gameState.totalQuestions,
+        correctAnswers: finalScore
+      };
+      updateChallengeProgress(gameResult);
+      
       setGameState({
         currentQuestion: null,
         questionIndex: 0,
         totalQuestions: 5,
-        timeLeft: 30,
+        timeLeft: 10,
         score: 0,
         isGameActive: false,
         bet: null,
@@ -662,6 +686,16 @@ function App() {
       adversario: gameState.opponent?.username || null,
       aposta: gameState.bet?.amount || null
     });
+    
+    // Atualizar progresso dos desafios X
+    const gameResult = {
+      won,
+      category: gameState.currentQuestion?.category || 'general',
+      questionsAnswered: gameState.totalQuestions,
+      correctAnswers: finalScore
+    };
+    updateChallengeProgress(gameResult);
+    
     setUser(updatedUser);
 
     setGameState({
@@ -807,8 +841,15 @@ function App() {
             onNavigate={setCurrentScreen}
           />
         ) : null;
-      case 'admin':
-        return <AdminScreen />;
+              case 'desafio-x':
+          return user ? (
+            <DesafioXScreen
+              user={user}
+              onNavigate={setCurrentScreen}
+            />
+          ) : null;
+        case 'admin':
+          return <AdminScreen />;
       default:
         return null;
     }

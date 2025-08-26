@@ -18,6 +18,7 @@ interface BetScreenProps {
 export const BetScreen: React.FC<BetScreenProps> = ({ user, onNavigate, onStartGame }) => {
   const [betAmount, setBetAmount] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
 
   const handleBetAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -36,8 +37,9 @@ export const BetScreen: React.FC<BetScreenProps> = ({ user, onNavigate, onStartG
       const bet: Bet = {
         amount,
         category: selectedCategory,
+        difficulty: selectedDifficulty, // Usar dificuldade selecionada
         multiplier: 2 // Sempre 2x (sua aposta + aposta do oponente)
-      } as any; // Forçar tipagem se necessário
+      };
       console.log('Chamando onStartGame com bet:', bet);
       onStartGame(bet);
     } else {
@@ -47,7 +49,7 @@ export const BetScreen: React.FC<BetScreenProps> = ({ user, onNavigate, onStartG
 
   const currentAmount = parseFloat(betAmount) || 0;
   const isValidAmount = validateBetAmount(currentAmount);
-  const canStart = betAmount && isValidAmount && selectedCategory;
+  const canStart = betAmount && isValidAmount && selectedCategory && selectedDifficulty;
 
   // Sugestões de valores múltiplos de 5
   const suggestedAmounts = [5, 10, 25, 50, 100, 250, 500].filter(amount => amount <= user.balance);
@@ -102,6 +104,30 @@ export const BetScreen: React.FC<BetScreenProps> = ({ user, onNavigate, onStartG
         </div>
       </div>
 
+      {/* Seletor de Dificuldade */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3 text-center">Escolha a Dificuldade</h3>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { value: 'easy', label: 'Fácil', color: 'from-green-500 to-green-600' },
+            { value: 'medium', label: 'Médio', color: 'from-yellow-500 to-yellow-600' },
+            { value: 'hard', label: 'Difícil', color: 'from-red-500 to-red-600' }
+          ].map(difficulty => (
+            <button
+              key={difficulty.value}
+              onClick={() => setSelectedDifficulty(difficulty.value as 'easy' | 'medium' | 'hard')}
+              className={`p-4 rounded-xl font-semibold text-white transition-all duration-200 transform hover:scale-105 active:scale-95
+                ${selectedDifficulty === difficulty.value 
+                  ? `bg-gradient-to-r ${difficulty.color} shadow-lg ring-2 ring-white/50` 
+                  : `bg-gradient-to-r ${difficulty.color} opacity-70 hover:opacity-100`
+                }`}
+            >
+              {difficulty.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-3 text-center">Escolha a Categoria</h3>
         <CategoryGrid 
@@ -121,6 +147,24 @@ export const BetScreen: React.FC<BetScreenProps> = ({ user, onNavigate, onStartG
             <div className="flex justify-between">
               <span>Sua aposta:</span>
               <span className="font-medium">R$ {currentAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Categoria:</span>
+              <span className="font-medium capitalize">
+                {selectedCategory === 'current' ? 'Atualizados' :
+                 selectedCategory === 'math' ? 'Matemática' :
+                 selectedCategory === 'english' ? 'Inglês' :
+                 selectedCategory === 'culture' ? 'Países/Cultura' :
+                 selectedCategory === 'sports' ? 'Esporte' :
+                 'Geral'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Dificuldade:</span>
+              <span className="font-medium capitalize">
+                {selectedDifficulty === 'easy' ? 'Fácil' :
+                 selectedDifficulty === 'medium' ? 'Médio' : 'Difícil'}
+              </span>
             </div>
             <div className="flex justify-between">
               <span>Aposta do oponente:</span>

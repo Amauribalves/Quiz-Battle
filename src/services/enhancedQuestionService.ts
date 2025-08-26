@@ -108,8 +108,19 @@ class EnhancedQuestionService {
         throw new Error(`Perguntas inválidas: ${validation.errors.join(', ')}`);
       }
 
-      // Cache das perguntas válidas
-      apiCache.set(cacheKey, questions, 10 * 60 * 1000); // 10 minutos
+      // Filtrar apenas questões em português
+      const portugueseQuestions = questions.filter(q => this.isPortugueseQuestion(q.text));
+      
+      // Se não houver questões suficientes em português, usar fallback local
+      if (portugueseQuestions.length < count) {
+        console.log(`Apenas ${portugueseQuestions.length} questões em português encontradas, usando fallback local`);
+        // Limpar o cache para esta chave para evitar problemas futuros
+        apiCache.delete(cacheKey);
+        return await this.getLocalQuestions(category, difficulty, count);
+      }
+
+      // Cache das perguntas válidas em português
+      apiCache.set(cacheKey, portugueseQuestions, 10 * 60 * 1000); // 10 minutos
 
       // Registrar métrica de sucesso
       apiMetrics.recordMetric({
@@ -120,7 +131,7 @@ class EnhancedQuestionService {
         success: true
       });
 
-      return questions;
+      return portugueseQuestions;
 
     } catch (error) {
       // Registrar métrica de erro
@@ -354,7 +365,7 @@ class EnhancedQuestionService {
     // Buscar perguntas de todas as categorias relacionadas
     for (const categoryId of categoryIds) {
       try {
-        const url = `${ENHANCED_API_CONFIG.TRIVIA_DB}?amount=20&category=${categoryId}&difficulty=${difficulty}&type=multiple`;
+        const url = `${ENHANCED_API_CONFIG.TRIVIA_DB}?amount=20&category=${categoryId}&difficulty=${difficulty}&type=multiple&lang=pt`;
         const response = await this.fetchWithRetry(url);
         const data = await response.json();
         
@@ -392,7 +403,7 @@ class EnhancedQuestionService {
     count: number
   ): Promise<Question[]> {
     const categoryId = ENHANCED_CATEGORY_MAP.trivia[category as keyof typeof ENHANCED_CATEGORY_MAP.trivia] || 9;
-    const url = `${ENHANCED_API_CONFIG.TRIVIA_DB}?amount=${count}&category=${categoryId}&difficulty=${difficulty}&type=multiple`;
+    const url = `${ENHANCED_API_CONFIG.TRIVIA_DB}?amount=${count}&category=${categoryId}&difficulty=${difficulty}&type=multiple&lang=pt`;
     
     const response = await this.fetchWithRetry(url);
     const data = await response.json();
@@ -485,6 +496,53 @@ class EnhancedQuestionService {
     const txt = document.createElement('textarea');
     txt.innerHTML = html;
     return txt.value;
+  }
+
+  // Método para verificar se uma questão está em português
+  private isPortugueseQuestion(text: string): boolean {
+    // Palavras comuns em inglês que indicam que a questão não está em português
+    const englishWords = [
+      'what', 'when', 'where', 'who', 'which', 'how', 'why',
+      'is', 'are', 'was', 'were', 'has', 'have', 'had',
+      'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at',
+      'to', 'for', 'of', 'with', 'by', 'from', 'about', 'into',
+      'through', 'during', 'before', 'after', 'above', 'below',
+      'between', 'among', 'inside', 'outside', 'up', 'down',
+      'left', 'right', 'north', 'south', 'east', 'west'
+    ];
+    
+    // Palavras comuns em português que indicam que a questão está em português
+    const portugueseWords = [
+      'qual', 'quem', 'quando', 'onde', 'como', 'por que', 'porque',
+      'é', 'são', 'era', 'eram', 'tem', 'têm', 'tinha', 'tinham',
+      'o', 'a', 'os', 'as', 'um', 'uma', 'e', 'ou', 'mas', 'em', 'no', 'na',
+      'para', 'por', 'de', 'com', 'sem', 'sobre', 'entre', 'dentro', 'fora',
+      'cima', 'baixo', 'esquerda', 'direita', 'norte', 'sul', 'leste', 'oeste'
+    ];
+    
+    const lowerText = text.toLowerCase();
+    
+    // Contar palavras em inglês vs português
+    let englishCount = 0;
+    let portugueseCount = 0;
+    
+    englishWords.forEach(word => {
+      if (lowerText.includes(word.toLowerCase())) {
+        englishCount++;
+      }
+    });
+    
+    portugueseWords.forEach(word => {
+      if (lowerText.includes(word.toLowerCase())) {
+        portugueseCount++;
+      }
+    });
+    
+    // Se há mais palavras em português ou se não há palavras em inglês, considerar português
+    // Também verificar se há caracteres específicos do português
+    const hasPortugueseChars = /[áàâãéèêíìîóòôõúùûç]/i.test(text);
+    
+    return (portugueseCount >= englishCount || englishCount === 0) || hasPortugueseChars;
   }
 
   // Métodos de diagnóstico

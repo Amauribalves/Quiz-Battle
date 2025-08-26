@@ -40,12 +40,33 @@ class MultiplayerService {
     this.matchmakingCallbacks.set(request.userId, onGameFound);
 
     // Procurar por jogador compatível na fila
+    console.log('🔍 Procurando jogador compatível na fila...');
+    console.log('📊 Fila atual:', this.matchmakingQueue.length, 'jogadores');
+    console.log('🎯 Buscando:', { 
+      category: request.bet.category, 
+      amount: request.bet.amount, 
+      difficulty: request.bet.difficulty || 'medium' 
+    });
+    
     const compatiblePlayerIndex = this.matchmakingQueue.findIndex(
-      req => 
-        req.bet.amount === request.bet.amount &&
-        req.bet.difficulty === request.bet.difficulty &&
-        req.bet.category === request.bet.category &&
-        req.userId !== request.userId
+      req => {
+        // Verificar se é o mesmo usuário
+        if (req.userId === request.userId) return false;
+        
+        // Verificar se a categoria é compatível
+        if (req.bet.category !== request.bet.category) return false;
+        
+        // Verificar se o valor da aposta é compatível
+        if (req.bet.amount !== request.bet.amount) return false;
+        
+        // Verificar dificuldade (se ambas tiverem, devem ser iguais; se uma não tiver, usar 'medium' como padrão)
+        const reqDifficulty = req.bet.difficulty || 'medium';
+        const requestDifficulty = request.bet.difficulty || 'medium';
+        if (reqDifficulty !== requestDifficulty) return false;
+        
+        console.log('✅ Jogador compatível encontrado:', req.username);
+        return true;
+      }
     );
 
     if (compatiblePlayerIndex !== -1) {
